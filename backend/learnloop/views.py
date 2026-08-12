@@ -373,6 +373,21 @@ def analytics_view(request):
         best_day_idx = max(day_totals, key=day_totals.get)
         best_study_day = day_names[best_day_idx]
         
+    # Best study time
+    from collections import defaultdict
+    hour_totals = defaultdict(int)
+    for s in valid_sessions:
+        s_hour = s.studied_at.astimezone(tz).hour
+        hour_totals[s_hour] += s.duration
+        
+    best_study_time = "None yet"
+    study_time_distribution = []
+    if hour_totals:
+        best_hour = max(hour_totals, key=hour_totals.get)
+        best_study_time = f"{best_hour:02d}:00"
+        for hour, mins in sorted(hour_totals.items()):
+            study_time_distribution.append({"hour": hour, "minutes": mins})
+        
     # Completion Percentage
     total_expected = 0
     total_completed = 0
@@ -441,11 +456,39 @@ def analytics_view(request):
             "minutes": mins
         })
 
+    # Retention Estimate
+    topic_latest_session = {}
+    for s in valid_sessions:
+        topic = s.topic
+        if topic not in topic_latest_session or s.studied_at.astimezone(tz) > topic_latest_session[topic].astimezone(tz):
+            topic_latest_session[topic] = s.studied_at.astimezone(tz)
+            
+    retention = []
+    for topic, latest_dt in topic_latest_session.items():
+        days_since = (today - latest_dt.date()).days
+        topic_sessions = [s for s in valid_sessions if s.topic == topic]
+        num_sessions = len(topic_sessions)
+        
+        base_score = 100 - (days_since * 10)
+        bonus = (num_sessions - 1) * 5
+        score = max(0, min(100, base_score + bonus))
+        
+        retention.append({
+            "topic": topic,
+            "score": score,
+            "days_since_study": days_since
+        })
+        
+    retention.sort(key=lambda x: x["score"])
+
     return JsonResponse({
         "total_study_minutes": total_study_minutes,
         "current_streak": current_streak,
         "best_study_day": best_study_day,
+        "best_study_time": best_study_time,
+        "study_time_distribution": study_time_distribution,
         "completion_percentage": completion_percentage,
         "weekly_activity": weekly_activity,
-        "monthly_activity": monthly_activity
+        "monthly_activity": monthly_activity,
+        "retention": retention
     })
