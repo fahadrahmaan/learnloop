@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import Register from './components/Register'
 import Login from './components/Login'
+import Habits from './components/Habits'
+import StudySessions from './components/StudySessions'
 import './App.css'
 
 function App() {
@@ -8,6 +10,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [authState, setAuthState] = useState('login') // 'login', 'register'
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('habits') // 'habits', 'sessions'
 
   useEffect(() => {
     checkAuthStatus()
@@ -63,15 +66,34 @@ function App() {
       <header className="app-header">
         <h1>LearnLoop</h1>
         {isAuthenticated && (
-          <button onClick={handleLogout} className="logout-button">Logout</button>
+          <div className="header-actions">
+            <span className="user-email">{user?.email}</span>
+            <button onClick={handleLogout} className="logout-button">Logout</button>
+          </div>
         )}
       </header>
       
       <main className="app-main">
         {isAuthenticated ? (
-          <div className="dashboard-placeholder">
-            <h2>Welcome, {user?.email}!</h2>
-            <p>You are successfully logged in.</p>
+          <div className="dashboard-container">
+            <div className="tabs">
+              <button 
+                className={`tab-button ${activeTab === 'habits' ? 'active' : ''}`}
+                onClick={() => setActiveTab('habits')}
+              >
+                Habits
+              </button>
+              <button 
+                className={`tab-button ${activeTab === 'sessions' ? 'active' : ''}`}
+                onClick={() => setActiveTab('sessions')}
+              >
+                Study Sessions
+              </button>
+            </div>
+            
+            <div className="tab-content">
+              {activeTab === 'habits' ? <Habits /> : <StudySessions />}
+            </div>
           </div>
         ) : (
           <div className="auth-wrapper">

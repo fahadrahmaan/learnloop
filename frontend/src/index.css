@@ -188,14 +188,192 @@ button:disabled {
   color: #888;
 }
 
-.dashboard-placeholder {
-  text-align: center;
+/* Dashboard Layout */
+.dashboard-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
-.dashboard-placeholder h2 {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
+
+.user-email {
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 1rem;
+  border-bottom: 1px solid #333;
+  padding-bottom: 1rem;
+}
+
+.tab-button {
+  background-color: transparent;
+  color: #888;
+  border-radius: 0;
+  padding: 0.5rem 1rem;
+}
+
+.tab-button:hover {
+  background-color: #2a2a2a;
+  border-radius: 6px;
+}
+
+.tab-button.active {
+  color: #646cff;
+  border-bottom: 2px solid #646cff;
+}
+
+/* Modules (Habits & Study Sessions) */
+.module-container {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .module-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-panel {
+  background-color: #1a1a1a;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.form-panel h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+.data-form .form-group select,
+.data-form .form-group textarea,
+.data-form .form-group input {
+  padding: 0.8rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background-color: #2a2a2a;
+  color: white;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.data-form .form-group select {
+  cursor: pointer;
+}
+
+.data-form .form-group select:focus,
+.data-form .form-group textarea:focus {
+  outline: 2px solid #646cff;
+  border-color: transparent;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.cancel-button {
+  background-color: #444;
+}
+
+.cancel-button:hover {
+  background-color: #555;
+}
+
+.list-panel h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+/* Card Grid */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.data-card {
+  background-color: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+}
+
+.data-card h4 {
+  margin: 0 0 1rem 0;
+  color: #646cff;
+  font-size: 1.2rem;
+}
+
+.card-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.card-details p {
+  margin: 0;
+  color: #ccc;
+}
+
+.card-details strong {
+  color: #fff;
+}
+
+.notes-preview {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #444;
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: flex-end;
+}
+
+.delete-button {
+  background-color: transparent;
+  color: #ff5555;
+  border: 1px solid #ff5555;
+}
+
+.delete-button:hover {
+  background-color: #ff5555;
+  color: white;
+}
+
+.success-message {
+  background-color: rgba(60, 255, 60, 0.1);
+  color: #55ff55;
+  padding: 0.8rem;
+  border-radius: 6px;
+  margin-bottom: 1.2rem;
+  font-size: 0.9rem;
+  border: 1px solid rgba(60, 255, 60, 0.2);
+}
+
 p {
   margin: 0;
 }
