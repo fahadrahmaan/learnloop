@@ -3,7 +3,7 @@ from .models import Habit, StudySession
 
 @admin.register(Habit)
 class HabitAdmin(admin.ModelAdmin):
-    list_display = ('user', 'topic', 'subject', 'frequency', 'start_date')
+    list_display = ('user', 'topic', 'subject', 'frequency', 'estimated_time', 'start_date')
     list_filter = ('subject', 'frequency', 'start_date')
     search_fields = ('topic', 'user__username')
 
