@@ -3,6 +3,7 @@ import Register from './components/Register'
 import Login from './components/Login'
 import Habits from './components/Habits'
 import StudySessions from './components/StudySessions'
+import Dashboard from './components/Dashboard'
 import './App.css'
 
 function App() {
@@ -10,7 +11,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [authState, setAuthState] = useState('login') // 'login', 'register'
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('habits') // 'habits', 'sessions'
+  const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard', 'habits', 'sessions'
 
   useEffect(() => {
     checkAuthStatus()
@@ -78,6 +79,12 @@ function App() {
           <div className="dashboard-container">
             <div className="tabs">
               <button 
+                className={`tab-button ${activeTab === 'dashboard' ? 'active' : ''}`}
+                onClick={() => setActiveTab('dashboard')}
+              >
+                Dashboard
+              </button>
+              <button 
                 className={`tab-button ${activeTab === 'habits' ? 'active' : ''}`}
                 onClick={() => setActiveTab('habits')}
               >
@@ -92,7 +99,9 @@ function App() {
             </div>
             
             <div className="tab-content">
-              {activeTab === 'habits' ? <Habits /> : <StudySessions />}
+              {activeTab === 'dashboard' && <Dashboard />}
+              {activeTab === 'habits' && <Habits />}
+              {activeTab === 'sessions' && <StudySessions />}
             </div>
           </div>
         ) : (

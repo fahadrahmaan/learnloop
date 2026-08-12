@@ -5,8 +5,10 @@ from django.contrib.auth.models import User
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db import IntegrityError
+from django.utils import timezone
 from .models import Habit, StudySession, SubjectChoices
 import datetime
+import calendar
 
 @require_POST
 def register_view(request):
@@ -240,19 +242,38 @@ def study_sessions_list_create_view(request):
                 
             try:
                 duration = int(duration)
+                print("DEBUG duration received:", repr(data.get('duration')))
+                print("DEBUG duration after int:", duration)
                 if duration <= 0:
                     return JsonResponse({'error': 'Duration must be positive.'}, status=400)
             except ValueError:
                 return JsonResponse({'error': 'Duration must be a number.'}, status=400)
+
+            from django.utils.dateparse import parse_datetime
+            try:
+                studied_at_dt = parse_datetime(studied_at)
+                if studied_at_dt is None:
+                    raise ValueError
+                if timezone.is_naive(studied_at_dt):
+                    tz = timezone.get_current_timezone()
+                    studied_at_dt = timezone.make_aware(studied_at_dt, timezone=tz)
+            except (ValueError, TypeError):
+                return JsonResponse({'error': 'Invalid date format for studied_at.'}, status=400)
+
+            if studied_at_dt > timezone.now():
+                return JsonResponse({'error': 'Study sessions cannot be scheduled for the future.'}, status=400)
 
             habit_obj = None
             if habit_id:
                 try:
                     # Isolate by checking if the habit belongs to the current user
                     habit_obj = Habit.objects.get(id=habit_id, user=request.user)
+                    if studied_at_dt.astimezone(timezone.get_current_timezone()).date() < habit_obj.start_date:
+                        return JsonResponse({'error': 'Study session cannot precede habit start date.'}, status=400)
                 except Habit.DoesNotExist:
                     return JsonResponse({'error': 'Habit not found or does not belong to you.'}, status=400)
 
+            print("DEBUG duration being saved:", duration)
             session = StudySession.objects.create(
                 user=request.user,
                 habit=habit_obj,
@@ -260,7 +281,7 @@ def study_sessions_list_create_view(request):
                 subject=subject,
                 duration=duration,
                 notes=notes,
-                studied_at=studied_at
+                studied_at=studied_at_dt
             )
             return JsonResponse({'success': True, 'study_session': serialize_study_session(session)}, status=201)
 
@@ -285,3 +306,146 @@ def study_session_detail_view(request, session_id):
     elif request.method == "DELETE":
         session.delete()
         return JsonResponse({'success': True})
+
+@require_GET
+def analytics_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required.'}, status=401)
+        
+    user_sessions = list(StudySession.objects.filter(user=request.user))
+    user_habits = list(Habit.objects.filter(user=request.user))
+    
+    # Use timezone-aware current date
+    tz = timezone.get_current_timezone()
+    now = timezone.now().astimezone(tz)
+    today = now.date()
+    
+    valid_sessions = [
+        s for s in user_sessions
+        if s.studied_at.astimezone(tz) <= now
+    ]
+
+    # Total study time
+    total_study_minutes = sum(
+        s.duration
+        for s in valid_sessions
+    )
+    
+    # Process session dates
+    session_dates = set()
+    for s in valid_sessions:
+        s_date = s.studied_at.astimezone(tz).date()
+        session_dates.add(s_date)
+            
+    sorted_dates = sorted(list(session_dates), reverse=True)
+    
+    # Current streak
+    current_streak = 0
+    if sorted_dates:
+        curr_date = today
+        if sorted_dates[0] == today:
+            current_streak = 1
+            idx = 1
+        elif sorted_dates[0] == today - datetime.timedelta(days=1):
+            current_streak = 1
+            curr_date = today - datetime.timedelta(days=1)
+            idx = 1
+        else:
+            idx = 0
+            
+        if current_streak > 0:
+            for d in sorted_dates[idx:]:
+                if d == curr_date - datetime.timedelta(days=1):
+                    current_streak += 1
+                    curr_date = d
+                else:
+                    break
+                    
+    # Best study day
+    day_totals = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0} # Mon(0) - Sun(6)
+    for s in valid_sessions:
+        s_date = s.studied_at.astimezone(tz).date()
+        day_totals[s_date.weekday()] += s.duration
+            
+    day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    best_study_day = "None yet"
+    if total_study_minutes > 0:
+        best_day_idx = max(day_totals, key=day_totals.get)
+        best_study_day = day_names[best_day_idx]
+        
+    # Completion Percentage
+    total_expected = 0
+    total_completed = 0
+    
+    from collections import defaultdict
+
+    for h in user_habits:
+        start = h.start_date
+        if start > today:
+            continue # Habit hasn't started yet
+            
+        if h.frequency == Habit.FrequencyChoices.DAILY:
+            durations_by_date = defaultdict(int)
+            for s in valid_sessions:
+                if s.habit_id == h.id:
+                    s_date = s.studied_at.astimezone(tz).date()
+                    if start <= s_date <= today:
+                        durations_by_date[s_date] += s.duration
+                        
+            expected = (today - start).days + 1
+            completed = sum(
+                1 for d in range(expected)
+                if durations_by_date[start + datetime.timedelta(days=d)] >= h.estimated_time
+            )
+            total_expected += expected
+            total_completed += completed
+            
+        elif h.frequency == Habit.FrequencyChoices.WEEKLY:
+            durations_by_week = defaultdict(int)
+            for s in valid_sessions:
+                if s.habit_id == h.id:
+                    s_date = s.studied_at.astimezone(tz).date()
+                    if start <= s_date <= today:
+                        week_num = (s_date - start).days // 7
+                        durations_by_week[week_num] += s.duration
+                        
+            expected = ((today - start).days // 7) + 1
+            completed = sum(
+                1 for w in range(expected)
+                if durations_by_week[w] >= h.estimated_time
+            )
+            total_expected += expected
+            total_completed += completed
+            
+    completion_percentage = 0
+    if total_expected > 0:
+        completion_percentage = min(100, round((total_completed / total_expected) * 100))
+        
+    # Weekly Activity (Last 7 days including today)
+    weekly_activity = []
+    for i in range(6, -1, -1):
+        d = today - datetime.timedelta(days=i)
+        mins = sum(s.duration for s in valid_sessions if s.studied_at.astimezone(tz).date() == d)
+        weekly_activity.append({
+            "date": str(d),
+            "minutes": mins
+        })
+        
+    # Monthly Activity (Days of the current month up to today)
+    monthly_activity = []
+    for i in range(1, today.day + 1):
+        d = today.replace(day=i)
+        mins = sum(s.duration for s in valid_sessions if s.studied_at.astimezone(tz).date() == d)
+        monthly_activity.append({
+            "date": str(d),
+            "minutes": mins
+        })
+
+    return JsonResponse({
+        "total_study_minutes": total_study_minutes,
+        "current_streak": current_streak,
+        "best_study_day": best_study_day,
+        "completion_percentage": completion_percentage,
+        "weekly_activity": weekly_activity,
+        "monthly_activity": monthly_activity
+    })

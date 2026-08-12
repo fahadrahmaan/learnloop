@@ -12,4 +12,6 @@ urlpatterns = [
     
     path('api/study-sessions/', views.study_sessions_list_create_view, name='study-sessions-list-create'),
     path('api/study-sessions/<int:session_id>/', views.study_session_detail_view, name='study-session-detail'),
+
+    path('api/analytics/', views.analytics_view, name='analytics'),
 ]

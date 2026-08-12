@@ -19,7 +19,15 @@ function StudySessions() {
   const [subject, setSubject] = useState(SUBJECT_CHOICES[0].value);
   const [duration, setDuration] = useState('');
   const [notes, setNotes] = useState('');
-  const [studiedAt, setStudiedAt] = useState('');
+  const getLocalDatetimeLocal = () => {
+    const now = new Date();
+    // Offset in milliseconds
+    const tzOffset = now.getTimezoneOffset() * 60000;
+    // Format YYYY-MM-DDThh:mm
+    return (new Date(now - tzOffset)).toISOString().slice(0, 16);
+  };
+
+  const [studiedAt, setStudiedAt] = useState(getLocalDatetimeLocal());
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
 
@@ -60,7 +68,7 @@ function StudySessions() {
     setSubject(SUBJECT_CHOICES[0].value);
     setDuration('');
     setNotes('');
-    setStudiedAt('');
+    setStudiedAt(getLocalDatetimeLocal());
     setFormError('');
     setFormSuccess('');
   };
