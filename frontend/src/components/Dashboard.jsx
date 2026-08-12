@@ -2,17 +2,23 @@ import React, { useState, useEffect } from 'react';
 
 function Dashboard() {
   const [data, setData] = useState(null);
+  const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const fetchAnalytics = async () => {
     try {
-      const res = await fetch('/api/analytics/');
-      const result = await res.json();
-      if (res.ok) {
-        setData(result);
+      const [analyticsRes, sessionsRes] = await Promise.all([
+        fetch('/api/analytics/'),
+        fetch('/api/study-sessions/')
+      ]);
+      const analyticsResult = await analyticsRes.json();
+      const sessionsResult = await sessionsRes.json();
+      if (analyticsRes.ok && sessionsRes.ok) {
+        setData(analyticsResult);
+        setSessions(sessionsResult.study_sessions || []);
       } else {
-        setError(result.error || 'Failed to load analytics.');
+        setError(analyticsResult.error || sessionsResult.error || 'Failed to load data.');
       }
     } catch (err) {
       setError('Network error');
@@ -39,6 +45,34 @@ function Dashboard() {
     if (hrs > 0 && mins > 0) return `${hrs}h ${mins}m`;
     if (hrs > 0) return `${hrs}h`;
     return `${mins}m`;
+  };
+
+  const groupSessionsByDate = () => {
+    const grouped = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    sessions.forEach(session => {
+      const d = new Date(session.studied_at);
+      const sessionDate = new Date(d);
+      sessionDate.setHours(0, 0, 0, 0);
+      
+      let label = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+      if (sessionDate.getTime() === today.getTime()) {
+        label = 'Today';
+      } else if (sessionDate.getTime() === yesterday.getTime()) {
+        label = 'Yesterday';
+      }
+
+      if (!grouped[label]) {
+        grouped[label] = [];
+      }
+      grouped[label].push(session);
+    });
+
+    return grouped;
   };
 
   return (
@@ -147,6 +181,49 @@ function Dashboard() {
                       backgroundColor: r.score >= 80 ? '#4CAF50' : r.score >= 50 ? '#FFC107' : '#F44336'
                     }}
                   ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="chart-panel" style={{ marginTop: '20px' }}>
+        <h3>Study Timeline</h3>
+        {sessions.length === 0 ? (
+          <p>No study sessions yet.</p>
+        ) : (
+          <div className="timeline-container" style={{ marginTop: '15px' }}>
+            {Object.entries(groupSessionsByDate()).map(([dateLabel, dateSessions]) => (
+              <div key={dateLabel} className="timeline-group" style={{ marginBottom: '20px' }}>
+                <h4 style={{ borderBottom: '1px solid #eee', paddingBottom: '5px', marginBottom: '10px' }}>{dateLabel}</h4>
+                <div style={{ paddingLeft: '15px', borderLeft: '2px solid #ddd' }}>
+                  {dateSessions.map(session => {
+                    const timeLabel = new Date(session.studied_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    return (
+                      <div key={session.id} className="timeline-item" style={{ position: 'relative', marginBottom: '15px' }}>
+                        <div style={{
+                          position: 'absolute',
+                          left: '-21px',
+                          top: '5px',
+                          width: '10px',
+                          height: '10px',
+                          backgroundColor: '#4CAF50',
+                          borderRadius: '50%'
+                        }}></div>
+                        <div style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '5px' }}>
+                          <h5 style={{ margin: '0 0 5px 0' }}>{session.topic}</h5>
+                          <div style={{ fontSize: '0.9rem', color: '#555' }}>
+                            <div><strong>Subject:</strong> {session.subject}</div>
+                            <div><strong>Duration:</strong> {session.duration} min</div>
+                            <div><strong>Time:</strong> {timeLabel}</div>
+                            {session.notes && <div><strong>Notes:</strong> {session.notes}</div>}
+                            {session.habit_id && <div style={{ color: '#4CAF50', marginTop: '5px' }}>✓ Linked to habit</div>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
