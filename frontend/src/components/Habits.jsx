@@ -154,6 +154,11 @@ function Habits() {
 
   if (loading) return <div>Loading habits...</div>;
 
+  const formatSubject = (subject) => {
+    if (!subject) return '';
+    return subject.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
   return (
     <div className="module-container">
       <div className="form-panel">
@@ -209,8 +214,8 @@ function Habits() {
               <div key={habit.id} className="data-card">
                 <h4>{habit.topic}</h4>
                 <div className="card-details">
-                  <p><strong>Subject:</strong> {habit.subject}</p>
-                  <p><strong>Frequency:</strong> {habit.frequency}</p>
+                  <p><strong>Subject:</strong> {formatSubject(habit.subject)}</p>
+                  <p><strong>Frequency:</strong> {habit.frequency.charAt(0).toUpperCase() + habit.frequency.slice(1)}</p>
                   <p><strong>Time:</strong> {habit.estimated_time}m</p>
                   <p><strong>Start:</strong> {habit.start_date}</p>
                 </div>

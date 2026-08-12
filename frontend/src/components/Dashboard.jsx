@@ -47,6 +47,11 @@ function Dashboard() {
     return `${mins}m`;
   };
 
+  const formatSubject = (subject) => {
+    if (!subject) return '';
+    return subject.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
   const groupSessionsByDate = () => {
     const grouped = {};
     const today = new Date();
@@ -58,7 +63,7 @@ function Dashboard() {
       const d = new Date(session.studied_at);
       const sessionDate = new Date(d);
       sessionDate.setHours(0, 0, 0, 0);
-      
+
       let label = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
       if (sessionDate.getTime() === today.getTime()) {
         label = 'Today';
@@ -89,18 +94,18 @@ function Dashboard() {
         <div className="stat-card">
           <h4>Best Study Times</h4>
           <div style={{ marginTop: '15px', fontSize: '1.1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span>Day:</span>
+            <div style={{ marginBottom: '8px' }}>
+              <span style={{ display: 'inline-block', width: '50px', color: '#555' }}>Day:</span>
               <strong>{data.best_study_day}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Time:</span>
+            <div>
+              <span style={{ display: 'inline-block', width: '50px', color: '#555' }}>Time:</span>
               <strong>{data.best_study_time}</strong>
             </div>
           </div>
         </div>
         <div className="stat-card">
-          <h4>Completion</h4>
+          <h4>Habit Completion</h4>
           <div className="stat-value">{data.completion_percentage}%</div>
           <div className="progress-bar-bg">
             <div
@@ -159,6 +164,42 @@ function Dashboard() {
       </div>
 
       <div className="chart-panel" style={{ marginTop: '20px' }}>
+        <h3>Topic Progress</h3>
+        {(!data.topic_progress || data.topic_progress.length === 0) ? (
+          <p>No topic progress yet.</p>
+        ) : (
+          <div style={{ display: 'grid', gap: '15px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', marginTop: '15px' }}>
+            {data.topic_progress.map((tp) => (
+              <div key={tp.habit_id} className="stat-card" style={{ margin: 0 }}>
+                <h4>{tp.topic}</h4>
+                <div style={{ fontSize: '0.9rem', color: '#555', marginBottom: '5px' }}>
+                  {formatSubject(tp.subject)}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>
+                  {tp.frequency.charAt(0).toUpperCase() + tp.frequency.slice(1)} • {tp.estimated_time} min target
+                </div>
+                <div style={{ marginBottom: '5px' }}>
+                  <span style={{ fontSize: '0.9rem', color: '#555', marginRight: '8px' }}>
+                    {tp.current_minutes} / {tp.estimated_time} min
+                  </span>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{tp.completion_percentage}%</span>
+                </div>
+                <div className="progress-bar-bg">
+                  <div
+                    className="progress-bar-fill"
+                    style={{
+                      width: `${tp.completion_percentage}%`,
+                      backgroundColor: tp.completion_percentage >= 80 ? '#4CAF50' : tp.completion_percentage >= 50 ? '#FFC107' : '#F44336'
+                    }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="chart-panel" style={{ marginTop: '20px' }}>
         <h3>Retention / Review</h3>
         {(!data.retention || data.retention.length === 0) ? (
           <p>No retention data available.</p>
@@ -167,7 +208,7 @@ function Dashboard() {
             {data.retention.map((r, idx) => (
               <div key={idx} className="stat-card" style={{ margin: 0 }}>
                 <h4>{r.topic}</h4>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '10px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '10px 0', gap: '10px' }}>
                   <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{r.score}%</span>
                   <span style={{ fontSize: '0.9rem', color: '#666' }}>
                     {r.days_since_study === 0 ? 'Studied today' : `Studied ${r.days_since_study} day${r.days_since_study === 1 ? '' : 's'} ago`}
@@ -214,7 +255,7 @@ function Dashboard() {
                         <div style={{ backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '5px' }}>
                           <h5 style={{ margin: '0 0 5px 0' }}>{session.topic}</h5>
                           <div style={{ fontSize: '0.9rem', color: '#555' }}>
-                            <div><strong>Subject:</strong> {session.subject}</div>
+                            <div><strong>Subject:</strong> {formatSubject(session.subject)}</div>
                             <div><strong>Duration:</strong> {session.duration} min</div>
                             <div><strong>Time:</strong> {timeLabel}</div>
                             {session.notes && <div><strong>Notes:</strong> {session.notes}</div>}

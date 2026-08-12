@@ -158,6 +158,11 @@ function StudySessions() {
 
   if (loading) return <div>Loading study sessions...</div>;
 
+  const formatSubject = (subject) => {
+    if (!subject) return '';
+    return subject.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
   return (
     <div className="module-container">
       <div className="form-panel">
@@ -222,7 +227,7 @@ function StudySessions() {
                 <div key={session.id} className="data-card">
                   <h4>{session.topic}</h4>
                   <div className="card-details">
-                    <p><strong>Subject:</strong> {session.subject}</p>
+                    <p><strong>Subject:</strong> {formatSubject(session.subject)}</p>
                     <p><strong>Duration:</strong> {session.duration}m</p>
                     <p><strong>Date:</strong> {formattedDate}</p>
                     {session.habit_id && <p><strong>Linked Habit:</strong> Yes</p>}

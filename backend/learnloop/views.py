@@ -393,6 +393,7 @@ def analytics_view(request):
     total_completed = 0
     
     from collections import defaultdict
+    topic_progress = []
 
     for h in user_habits:
         start = h.start_date
@@ -431,6 +432,33 @@ def analytics_view(request):
             )
             total_expected += expected
             total_completed += completed
+            
+        current_minutes = 0
+        if h.frequency == Habit.FrequencyChoices.DAILY:
+            current_minutes = sum(
+                s.duration for s in valid_sessions 
+                if s.habit_id == h.id and s.studied_at.astimezone(tz).date() == today
+            )
+        elif h.frequency == Habit.FrequencyChoices.WEEKLY:
+            week_num = (today - start).days // 7
+            current_minutes = sum(
+                s.duration for s in valid_sessions
+                if s.habit_id == h.id and start <= s.studied_at.astimezone(tz).date() <= today and (s.studied_at.astimezone(tz).date() - start).days // 7 == week_num
+            )
+            
+        habit_percentage = 0
+        if h.estimated_time > 0:
+            habit_percentage = min(100, round((current_minutes / h.estimated_time) * 100))
+            
+        topic_progress.append({
+            "habit_id": h.id,
+            "topic": h.topic,
+            "subject": h.subject,
+            "frequency": h.get_frequency_display().capitalize() if hasattr(h, 'get_frequency_display') else str(h.frequency).capitalize(),
+            "estimated_time": h.estimated_time,
+            "current_minutes": current_minutes,
+            "completion_percentage": habit_percentage
+        })
             
     completion_percentage = 0
     if total_expected > 0:
@@ -490,5 +518,6 @@ def analytics_view(request):
         "completion_percentage": completion_percentage,
         "weekly_activity": weekly_activity,
         "monthly_activity": monthly_activity,
-        "retention": retention
+        "retention": retention,
+        "topic_progress": topic_progress
     })
